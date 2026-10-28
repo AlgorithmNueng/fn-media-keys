@@ -16,6 +16,12 @@ Reading it:
 - `HID` shows a plain key (for example `F5`) instead of a consumer usage: the firmware sends the wrong code for Fn+5, a remap can turn it into Play/Pause.
 - Nothing at all on Fn+5: the firmware swallows the key; no macOS-side tool can fix it.
 
+## Findings (Lucky65 on macOS, captured 2026-10-28)
+
+- The Fn key sends nothing by itself; the firmware switches layer.
+- The 12 Fn combinations pressed in order (Fn+1 first) send plain F1 ... F12 on the boot keyboard interface: keyboard usages `0x3A`...`0x45` (Fn+5 is `00 00 3e ...`). macOS turns them into `keyDown` F1 ... F12 (key codes 122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111) with the `fn` flag.
+- The keyboard never sent a consumer (media) usage, although its descriptor has a consumer report. So no key is swallowed: Fn+5 is F5, and Play/Pause has to be added on the Mac side by remapping F5.
+
 ## Run
 
 ```bash
@@ -43,4 +49,4 @@ swift test
 - `Sources/keydebug/HIDWatcher.swift` — `list` and the raw HID side of `watch`
 - `Sources/keydebug/EventTapWatcher.swift` — the macOS event side of `watch`
 - `Sources/keydebug/Names.swift` — usage, key code and flag names
-- `captures/` — recorded output from real key presses
+- `captures/` — local recordings of `watch` (git-ignored: they contain every key typed while running)

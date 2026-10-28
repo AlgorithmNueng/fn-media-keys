@@ -2,3 +2,5 @@
 .swiftpm/
 *.log
 .DS_Store
+# a capture records every key typed system-wide while it runs
+captures/*.txt
