@@ -91,13 +91,14 @@ private let onValue: IOHIDValueCallback = { _, _, _, value in
     let element = IOHIDValueGetElement(value)
     guard IOHIDElementGetUsage(element) != 0xFFFF_FFFF else { return }  // rollover filler
     let page = Int(IOHIDElementGetUsagePage(element))
+    let usage = Int(IOHIDElementGetUsage(element))
     let raw = IOHIDValueGetIntegerValue(value)
-    // An array element (e.g. the consumer report) carries the pressed usage in its value; 0 means released.
+    // For array elements (the boot keyboard's key slots) the value is not a plain down/up flag, so show it as is;
+    // the RAW line beside it has the real usage bytes.
     let isArray = IOHIDElementIsArray(element)
-    let usage = isArray ? raw : Int(IOHIDElementGetUsage(element))
-    let state = isArray || IOHIDElementGetLogicalMax(element) <= 1 ? (raw != 0 ? "down" : "up") : "value=\(raw)"
+    let state = !isArray && IOHIDElementGetLogicalMax(element) <= 1 ? (raw != 0 ? "down" : "up") : "value=\(raw)"
     Timeline.log("HID", "\(IOHIDElementGetDevice(element).label)  \(Names.hex(page)):\(Names.hex(usage)) "
-        + "\(Names.usage(page: page, usage: usage))  \(state)")
+        + "\(Names.usage(page: page, usage: usage))  \(state)" + (isArray ? "  [array]" : ""))
 }
 
 // Raw bytes are the ground truth: they also show vendor reports the value callback has no names for.
