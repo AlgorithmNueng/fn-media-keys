@@ -1,8 +1,8 @@
 import CoreGraphics
 
 extension Action {
-    /// Does what the key stands for. Media actions post the Magic Keyboard media key, Spotlight, Dictation and Do Not
-    /// Disturb post their key code, and `fKey` does nothing.
+    /// Does what the key stands for. Media actions post the Magic Keyboard media key, Mission Control, Launchpad, Spotlight,
+    /// Dictation and Do Not Disturb post their key code, and `fKey` does nothing.
     func perform(down: Bool, isRepeat: Bool) {
         if let media {
             MediaEvent.post(media, down: down, isRepeat: isRepeat)

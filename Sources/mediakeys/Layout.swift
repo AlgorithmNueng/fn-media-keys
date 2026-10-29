@@ -15,7 +15,7 @@ enum MediaKey: Int32 {
 /// What an Fn key does. The raw value is what UserDefaults stores, so never rename a case.
 /// A new action is a case and its `title` here, plus what it does in `perform` (Actions.swift).
 enum Action: String, CaseIterable {
-    case fKey, brightnessDown, brightnessUp, spotlight, dictation, doNotDisturb
+    case fKey, brightnessDown, brightnessUp, missionControl, launchpad, spotlight, dictation, doNotDisturb
     case rewind, playPause, fastForward, mute, volumeDown, volumeUp
 
     /// Shown in the settings UI.
@@ -24,6 +24,8 @@ enum Action: String, CaseIterable {
         case .fKey: "F-key ปกติ (ไม่แปลง)"
         case .brightnessDown: "ลดความสว่างจอ"
         case .brightnessUp: "เพิ่มความสว่างจอ"
+        case .missionControl: "Mission Control"
+        case .launchpad: "Launchpad"
         case .spotlight: "Spotlight"
         case .dictation: "ป้อนตามคำบอก"
         case .doNotDisturb: "ห้ามรบกวน"
@@ -51,10 +53,13 @@ enum Action: String, CaseIterable {
         }
     }
 
-    /// The key code this action posts; nil for the other actions. They are what the MacBook's F4-F6 (Spotlight, Dictation,
-    /// Do Not Disturb) produce in special-key mode: key down and key up with the fn flag.
+    /// The key code this action posts; nil for the other actions. Apple keyboards' top row produces them in special-key mode:
+    /// key down and key up with the fn flag. The MacBook's F3-F6 send 160, 177, 176 and 178; this Magic Keyboard's F4 (the
+    /// Launchpad key) sends 131.
     var systemKeyCode: CGKeyCode? {
         switch self {
+        case .missionControl: 160
+        case .launchpad: 131
         case .spotlight: 177
         case .dictation: 176
         case .doNotDisturb: 178

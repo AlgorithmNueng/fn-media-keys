@@ -1,6 +1,6 @@
 # fn-media-keys
 
-A macOS menu bar app, "Fn Media Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard function (brightness, Spotlight, Dictation, Do Not Disturb, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
+A macOS menu bar app, "Fn Media Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard function (brightness, Mission Control, Launchpad, Spotlight, Dictation, Do Not Disturb, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
 
 - [Install](#install)
 - [Use](#use)
@@ -65,7 +65,7 @@ Click the keyboard icon in the menu bar. The popover shows:
 - "launch at login" (only in the installed app)
 - quit
 
-The popover text is in Thai; the English meaning is given in parentheses below. Each picker offers: plain F-key ("F-key ปกติ (ไม่แปลง)"), brightness down, brightness up, Spotlight, Dictation ("ป้อนตามคำบอก"), Do Not Disturb ("ห้ามรบกวน"), previous track, play / pause, next track, mute, volume down, volume up. Spotlight, Dictation and Do Not Disturb post the key codes the MacBook's F4, F5 and F6 send (see [Findings](#findings)); the others post Magic Keyboard media keys. Volume and brightness repeat while the key is held; the other actions do not.
+The popover text is in Thai; the English meaning is given in parentheses below. Each picker offers: plain F-key ("F-key ปกติ (ไม่แปลง)"), brightness down, brightness up, Mission Control, Launchpad, Spotlight, Dictation ("ป้อนตามคำบอก"), Do Not Disturb ("ห้ามรบกวน"), previous track, play / pause, next track, mute, volume down, volume up. Mission Control, Launchpad, Spotlight, Dictation and Do Not Disturb post the key codes the Apple top row sends in special-key mode: the F3 of the MacBook and of the Magic Keyboard (Mission Control), the Magic Keyboard's F4 (the Launchpad key) and the MacBook's F4, F5 and F6 (see [Findings](#findings)); the others post Magic Keyboard media keys. Volume and brightness repeat while the key is held; the other actions do not.
 
 ### Choosing keyboards
 
@@ -103,7 +103,7 @@ Hold **shift, ctrl, opt or cmd** with a remapped key and the app leaves the key 
 Settings are stored in UserDefaults, domain `com.fnmediakeys.app` (the installed app):
 
 - `enabled`: a boolean; missing means on.
-- `F1` ... `F12`: each holds an action name: `fKey`, `brightnessDown`, `brightnessUp`, `spotlight`, `dictation`, `doNotDisturb`, `rewind`, `playPause`, `fastForward`, `mute`, `volumeDown` or `volumeUp`. A missing or unknown value falls back to the default.
+- `F1` ... `F12`: each holds an action name: `fKey`, `brightnessDown`, `brightnessUp`, `missionControl`, `launchpad`, `spotlight`, `dictation`, `doNotDisturb`, `rewind`, `playPause`, `fastForward`, `mute`, `volumeDown` or `volumeUp`. A missing or unknown value falls back to the default.
 - `keyboards`: the chosen keyboards as one comma-separated string of `vvvv:pppp` IDs (vendor ID, a colon, product ID; each four lowercase hexadecimal digits), for example `0603:0351,004c:0267`. Missing (or not a string) means `0603:0351`, the Lucky65 V1. An empty string means no keyboard, so nothing is remapped. Entries that are not well formed are ignored (capital letters and spaces around an entry are accepted). The popover writes the value back sorted and without duplicates.
 
 The app reads them on every key press, so a change in the popover applies to the next press. They can also be set from the terminal:
@@ -117,7 +117,7 @@ defaults write com.fnmediakeys.app keyboards -string "0603:0351,004c:0267"
 
 This app sees keyboard input, so here is exactly what it does with it.
 
-- **Event tap.** To swallow an F-key and post a media key (or, for Spotlight, Dictation and Do Not Disturb, the key code 177, 176 or 178 with the `fn` flag) instead, the app installs an active event tap (key down and key up only). macOS therefore hands it the key events of every app, system-wide; that is how any remap works. The callback compares the key code with the twelve F-key codes and returns every other event untouched. For those twelve it also reads the auto-repeat flag and the modifier flags. It does not read the typed characters, and it does not subscribe to modifier-change or media-key events. Key codes are not stored, logged or sent anywhere.
+- **Event tap.** To swallow an F-key and post a media key (or, for Mission Control, Launchpad, Spotlight, Dictation and Do Not Disturb, the key code 160, 131, 177, 176 or 178 with the `fn` flag) instead, the app installs an active event tap (key down and key up only). macOS therefore hands it the key events of every app, system-wide; that is how any remap works. The callback compares the key code with the twelve F-key codes and returns every other event untouched. For those twelve it also reads the auto-repeat flag and the modifier flags. It does not read the typed characters, and it does not subscribe to modifier-change or media-key events. Key codes are not stored, logged or sent anywhere.
 - **Only the chosen keyboards are changed.** A key event carries no device, so the app asks the HID layer. It matches the interfaces of all keyboards (primary usage page `0x01`, usage `0x06`) and asks macOS for input values of the twelve F-key usages only (keyboard page `0x07`, usages `0x3A`-`0x45`). IOHIDManager filters every other key, on any keyboard, out before the app's callback (which checks again), so the HID side cannot see what is typed. It does receive the twelve F-key presses of keyboards that are not chosen too (the MacBook's, for example): for each press it reads the keyboard's vendor and product ID and the saved choice, and drops the press unless that keyboard is chosen. For the chosen ones all it keeps is the time of the last press of each of those twelve usages, in memory. An F-key event is remapped only if a chosen keyboard reported that same F-key within the last 100 ms. The keyboard list in the popover uses the names and IDs macOS gives for the connected keyboards (listing devices needs no permission); they are shown, never stored or sent.
 - **No network access.** The code has no networking.
 - **Nothing is logged or stored**, apart from the settings above in UserDefaults and, if you switch it on, the macOS login item (kept by macOS, not by the app).
@@ -199,13 +199,13 @@ Lucky65 on macOS, captured 2026-10-28 with `keydebug watch`.
 - Fn+1 ... Fn+= send plain F1 ... F12: keyboard usages `0x3A`-`0x45` on the boot keyboard interface (report id 0, for example Fn+5 is `00 00 3e 00 00 00 00 00`). macOS turns them into `keyDown` F1 ... F12 with key codes 122, 120, 99, 118, 96, 97, 98, 100, 101, 109, 103, 111 and the `fn` flag.
 - So Play/Pause and the other media keys have to be added on the Mac, by remapping the F-keys.
 - The keyboard does send consumer (media) usages for at least one key. One capture shows a native Volume Down (page `0x0C`, usage `0xEA`, report id 3, on a second HID interface of the keyboard) which macOS handled by itself, including auto-repeat. Which key sends it has not been identified yet.
-- The MacBook's built-in keyboard (Apple top row, special-key mode), captured 2026-10-29: F3 ... F6 (Mission Control, Spotlight, Dictation, Do Not Disturb) send `keyDown` / `keyUp` with key codes 160, 177, 176 and 178 and the `fn` flag. The Spotlight, Dictation and Do Not Disturb actions post those key codes for F4-F6.
+- The MacBook's built-in keyboard (Apple top row, special-key mode), captured 2026-10-29: F3 ... F6 (Mission Control, Spotlight, Dictation, Do Not Disturb) send `keyDown` / `keyUp` with key codes 160, 177, 176 and 178 and the `fn` flag. The Mission Control, Spotlight, Dictation and Do Not Disturb actions post those key codes.
+- The Magic Keyboard (Bluetooth, `004c:0267`), captured 2026-10-29: F3 sends `keyDown` / `keyUp` with key code 160 (the same as the MacBook's F3, Mission Control) and F4 with key code 131 (the Launchpad key of this model; the MacBook's F4 sends Spotlight, 177, instead), both with the `fn` flag. The Launchpad action posts 131.
 
 ## Limits and not yet
 
 - The Lucky65's 2.4 GHz and Bluetooth modes are untested. The app has no special code for them: if they appear in the keyboard list with other IDs, choose them there. Only the wired V1 (`0603:0351`) is chosen by default.
 - A key event carries no device, so if a chosen and a not chosen keyboard send the same F-key within 100 ms of each other, both presses may be remapped.
-- Mission Control (the Magic Keyboard's F3) is not offered.
 - Only the twelve Fn-row keys are handled. The keyboard's own consumer keys (such as the Volume Down above) go straight to macOS and are not touched.
 - The Lucky65 V1 has no VIA support, so the remap lives on the Mac: it works only while the app runs, and on another computer the keys are plain F-keys.
 - The popover text is Thai only.

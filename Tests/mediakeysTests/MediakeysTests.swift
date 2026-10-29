@@ -36,8 +36,8 @@ final class MediakeysTests: XCTestCase {
         XCTAssertEqual(
             Action.allCases.map(\.rawValue),
             [
-                "fKey", "brightnessDown", "brightnessUp", "spotlight", "dictation", "doNotDisturb", "rewind", "playPause",
-                "fastForward", "mute", "volumeDown", "volumeUp",
+                "fKey", "brightnessDown", "brightnessUp", "missionControl", "launchpad", "spotlight", "dictation", "doNotDisturb",
+                "rewind", "playPause", "fastForward", "mute", "volumeDown", "volumeUp",
             ])
     }
 
@@ -53,13 +53,15 @@ final class MediakeysTests: XCTestCase {
         XCTAssertEqual(Action.volumeUp.media, .soundUp)
     }
 
-    func testSystemActionsPostTheKeyCodesOfTheMacBookRow() {
-        // what the MacBook's F4-F6 send, from the capture
+    func testSystemActionsPostTheKeyCodesOfTheAppleRow() {
+        // what the MacBook's F3-F6 and the Magic Keyboard's F3-F4 send, from the captures
+        XCTAssertEqual(Action.missionControl.systemKeyCode, 160)
+        XCTAssertEqual(Action.launchpad.systemKeyCode, 131)
         XCTAssertEqual(Action.spotlight.systemKeyCode, 177)
         XCTAssertEqual(Action.dictation.systemKeyCode, 176)
         XCTAssertEqual(Action.doNotDisturb.systemKeyCode, 178)
 
-        let system: [Action] = [.spotlight, .dictation, .doNotDisturb]
+        let system: [Action] = [.missionControl, .launchpad, .spotlight, .dictation, .doNotDisturb]
         for action in Action.allCases where !system.contains(action) { XCTAssertNil(action.systemKeyCode, action.rawValue) }
         for action in system {
             XCTAssertNil(action.media, action.rawValue)
@@ -71,6 +73,8 @@ final class MediakeysTests: XCTestCase {
 
     func testEveryActionHasATitle() {
         XCTAssertEqual(Action.fKey.title, "F-key ปกติ (ไม่แปลง)")
+        XCTAssertEqual(Action.missionControl.title, "Mission Control")
+        XCTAssertEqual(Action.launchpad.title, "Launchpad")
         XCTAssertEqual(Action.spotlight.title, "Spotlight")
         XCTAssertEqual(Action.dictation.title, "ป้อนตามคำบอก")
         XCTAssertEqual(Action.doNotDisturb.title, "ห้ามรบกวน")
