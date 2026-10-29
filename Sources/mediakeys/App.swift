@@ -5,7 +5,7 @@ import SwiftUI
 
 /// A menu bar app: no windows, the whole settings UI is the popover (see `MenuView`).
 @main
-struct Lucky65KeysApp: App {
+struct FnMediaKeysApp: App {
     init() {
         Status.shared.start()
     }

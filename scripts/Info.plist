@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.lucky65keys.app</string>
+	<string>com.fnmediakeys.app</string>
 	<key>CFBundleName</key>
-	<string>Lucky65 Keys</string>
+	<string>Fn Media Keys</string>
 	<key>CFBundleDisplayName</key>
-	<string>Lucky65 Keys</string>
+	<string>Fn Media Keys</string>
 	<key>CFBundleExecutable</key>
 	<string>mediakeys</string>
 	<key>CFBundlePackageType</key>

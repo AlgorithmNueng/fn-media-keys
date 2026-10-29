@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds mediakeys into "Lucky65 Keys.app". The bundle gives the app its own identity for the
+# Builds mediakeys into "Fn Media Keys.app". The bundle gives the app its own identity for the
 # Accessibility / Input Monitoring permissions. Ad-hoc signing (the default) changes the identity on
 # every rebuild, so those permissions must be granted again; a stable SIGN_ID (the name of a
 # self-signed code-signing certificate) avoids that.
@@ -10,7 +10,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 swift build -c release --product mediakeys
 BIN="$(swift build -c release --show-bin-path)/mediakeys"
 
-APP="${APP_DIR:-$HOME/Applications}/Lucky65 Keys.app"
+APP="${APP_DIR:-$HOME/Applications}/Fn Media Keys.app"
 [[ "$APP" == *.app ]] || { echo "refusing to touch '$APP': not an .app path" >&2; exit 1; }
 
 # Match only the installed bundle's executable, so the dev CLI (.build/.../mediakeys) keeps running.

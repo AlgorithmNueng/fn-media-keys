@@ -13,7 +13,7 @@ struct MenuView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Lucky65 Keys").font(.headline)
+            Text("Fn Media Keys").font(.headline)
 
             StatusRow(
                 title: "Accessibility", ok: status.accessibility,

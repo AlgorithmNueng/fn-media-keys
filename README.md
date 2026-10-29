@@ -1,6 +1,6 @@
-# lucky65-media-keys
+# fn-media-keys
 
-A macOS menu bar app, "Lucky65 Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard media key (brightness, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
+A macOS menu bar app, "Fn Media Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard media key (brightness, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
 
 - [Install](#install)
 - [Use](#use)
@@ -20,7 +20,7 @@ There is no prebuilt download; the app is built from source. You need macOS 13+ 
 scripts/make-app.sh
 ```
 
-This builds a release binary, wraps it as `~/Applications/Lucky65 Keys.app` (a menu bar app: no Dock icon), signs it, and opens it. A running installed copy is quit first. The script reads three environment variables:
+This builds a release binary, wraps it as `~/Applications/Fn Media Keys.app` (a menu bar app: no Dock icon), signs it, and opens it. A running installed copy is quit first. The script reads three environment variables:
 
 | Variable | Meaning | Default |
 |----------|---------|---------|
@@ -30,7 +30,7 @@ This builds a release binary, wraps it as `~/Applications/Lucky65 Keys.app` (a m
 
 ### Permissions
 
-Grant both to **Lucky65 Keys** under System Settings > Privacy & Security:
+Grant both to **Fn Media Keys** under System Settings > Privacy & Security:
 
 - **Input Monitoring**: to read which F-keys a chosen keyboard itself pressed.
 - **Accessibility**: to drop the original F-key and post the media key instead.
@@ -39,16 +39,16 @@ The popover (the keyboard icon in the menu bar) shows each permission with a but
 
 ### Signing caveat
 
-macOS ties a permission grant to the app's code signature. The default ad-hoc signature changes on every build, so **after a rebuild macOS no longer recognises the old grant, even if the toggle in System Settings still looks on.** Select "Lucky65 Keys" in the Accessibility and Input Monitoring lists, remove it with "-", and add it again.
+macOS ties a permission grant to the app's code signature. The default ad-hoc signature changes on every build, so **after a rebuild macOS no longer recognises the old grant, even if the toggle in System Settings still looks on.** Select "Fn Media Keys" in the Accessibility and Input Monitoring lists, remove it with "-", and add it again.
 
 A stable self-signed certificate avoids this:
 
 1. Open Keychain Access > Certificate Assistant > Create a Certificate...
-2. Name: for example `Lucky65 Local`. Identity Type: "Self Signed Root". Certificate Type: "Code Signing".
+2. Name: for example `Fn Media Keys Local`. Identity Type: "Self Signed Root". Certificate Type: "Code Signing".
 3. Build with it:
 
 ```bash
-SIGN_ID="Lucky65 Local" scripts/make-app.sh
+SIGN_ID="Fn Media Keys Local" scripts/make-app.sh
 ```
 
 Grant the permissions once more after the first build with the new certificate; later rebuilds keep them.
@@ -100,7 +100,7 @@ Hold **shift, ctrl, opt or cmd** with a remapped key and the app leaves the key 
 
 ### Settings
 
-Settings are stored in UserDefaults, domain `com.lucky65keys.app` (the installed app):
+Settings are stored in UserDefaults, domain `com.fnmediakeys.app` (the installed app):
 
 - `enabled`: a boolean; missing means on.
 - `F1` ... `F12`: each holds an action name: `fKey`, `brightnessDown`, `brightnessUp`, `rewind`, `playPause`, `fastForward`, `mute`, `volumeDown` or `volumeUp`. A missing or unknown value falls back to the default.
@@ -109,8 +109,8 @@ Settings are stored in UserDefaults, domain `com.lucky65keys.app` (the installed
 The app reads them on every key press, so a change in the popover applies to the next press. They can also be set from the terminal:
 
 ```bash
-defaults write com.lucky65keys.app F12 -string volumeUp
-defaults write com.lucky65keys.app keyboards -string "0603:0351,004c:0267"
+defaults write com.fnmediakeys.app F12 -string volumeUp
+defaults write com.fnmediakeys.app keyboards -string "0603:0351,004c:0267"
 ```
 
 ## Security and privacy
