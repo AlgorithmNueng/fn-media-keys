@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 /// NX_KEYTYPE_* codes of the media keys a Magic Keyboard sends (IOKit ev_keymap.h).
@@ -14,7 +15,8 @@ enum MediaKey: Int32 {
 /// What an Fn key does. The raw value is what UserDefaults stores, so never rename a case.
 /// A new action is a case and its `title` here, plus what it does in `perform` (Actions.swift).
 enum Action: String, CaseIterable {
-    case fKey, brightnessDown, brightnessUp, rewind, playPause, fastForward, mute, volumeDown, volumeUp
+    case fKey, brightnessDown, brightnessUp, spotlight, dictation, doNotDisturb
+    case rewind, playPause, fastForward, mute, volumeDown, volumeUp
 
     /// Shown in the settings UI.
     var title: String {
@@ -22,6 +24,9 @@ enum Action: String, CaseIterable {
         case .fKey: "F-key ปกติ (ไม่แปลง)"
         case .brightnessDown: "ลดความสว่างจอ"
         case .brightnessUp: "เพิ่มความสว่างจอ"
+        case .spotlight: "Spotlight"
+        case .dictation: "ป้อนตามคำบอก"
+        case .doNotDisturb: "ห้ามรบกวน"
         case .rewind: "เพลงก่อนหน้า"
         case .playPause: "เล่น/หยุด"
         case .fastForward: "เพลงถัดไป"
@@ -42,6 +47,17 @@ enum Action: String, CaseIterable {
         case .mute: .mute
         case .volumeDown: .soundDown
         case .volumeUp: .soundUp
+        default: nil
+        }
+    }
+
+    /// The key code this action posts; nil for the other actions. They are what the MacBook's F4-F6 (Spotlight, Dictation,
+    /// Do Not Disturb) produce in special-key mode: key down and key up with the fn flag.
+    var systemKeyCode: CGKeyCode? {
+        switch self {
+        case .spotlight: 177
+        case .dictation: 176
+        case .doNotDisturb: 178
         default: nil
         }
     }

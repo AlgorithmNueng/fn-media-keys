@@ -35,7 +35,10 @@ final class MediakeysTests: XCTestCase {
         // Stored in UserDefaults: renaming one would silently reset the user's setting.
         XCTAssertEqual(
             Action.allCases.map(\.rawValue),
-            ["fKey", "brightnessDown", "brightnessUp", "rewind", "playPause", "fastForward", "mute", "volumeDown", "volumeUp"])
+            [
+                "fKey", "brightnessDown", "brightnessUp", "spotlight", "dictation", "doNotDisturb", "rewind", "playPause",
+                "fastForward", "mute", "volumeDown", "volumeUp",
+            ])
     }
 
     func testActionsPostTheirMediaKey() {
@@ -50,8 +53,27 @@ final class MediakeysTests: XCTestCase {
         XCTAssertEqual(Action.volumeUp.media, .soundUp)
     }
 
+    func testSystemActionsPostTheKeyCodesOfTheMacBookRow() {
+        // what the MacBook's F4-F6 send, from the capture
+        XCTAssertEqual(Action.spotlight.systemKeyCode, 177)
+        XCTAssertEqual(Action.dictation.systemKeyCode, 176)
+        XCTAssertEqual(Action.doNotDisturb.systemKeyCode, 178)
+
+        let system: [Action] = [.spotlight, .dictation, .doNotDisturb]
+        for action in Action.allCases where !system.contains(action) { XCTAssertNil(action.systemKeyCode, action.rawValue) }
+        for action in system {
+            XCTAssertNil(action.media, action.rawValue)
+            XCTAssertFalse(action.repeats, action.rawValue)
+            // the posted event must not be one the tap acts on, or it would loop back into the app
+            XCTAssertNil(Layout.indexByKeyCode[Int(action.systemKeyCode!)], action.rawValue)
+        }
+    }
+
     func testEveryActionHasATitle() {
         XCTAssertEqual(Action.fKey.title, "F-key ปกติ (ไม่แปลง)")
+        XCTAssertEqual(Action.spotlight.title, "Spotlight")
+        XCTAssertEqual(Action.dictation.title, "ป้อนตามคำบอก")
+        XCTAssertEqual(Action.doNotDisturb.title, "ห้ามรบกวน")
         XCTAssertEqual(Action.playPause.title, "เล่น/หยุด")
         XCTAssertEqual(Set(Action.allCases.map(\.title)).count, Action.allCases.count)
     }
@@ -211,6 +233,7 @@ final class MediakeysTests: XCTestCase {
         XCTAssertEqual(decide(isRepeat: true, held: .brightnessUp), .repeatDown(.brightnessUp))
         XCTAssertEqual(decide(isRepeat: true, held: .playPause), .swallow)
         XCTAssertEqual(decide(isRepeat: true, held: .mute), .swallow)
+        XCTAssertEqual(decide(isRepeat: true, held: .spotlight), .swallow)
     }
 
     func testRepeatOfAKeyThatIsNotHeldPasses() {
