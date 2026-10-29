@@ -112,17 +112,84 @@ final class MediakeysTests: XCTestCase {
         XCTAssertTrue(Layout.isEnabled(in: defaults))
     }
 
+    // MARK: Keyboards
+
+    func testKeyboardIDIsFourLowercaseHexDigitsEach() {
+        XCTAssertEqual(Keyboards.id(vendorID: 0x0603, productID: 0x0351), "0603:0351")
+        XCTAssertEqual(Keyboards.id(vendorID: 0x4C, productID: 0x267), "004c:0267")
+        XCTAssertEqual(Keyboards.id(vendorID: 0xABCD, productID: 0xEF01), "abcd:ef01")
+        XCTAssertEqual(Keyboard(vendorID: 0x0603, productID: 0x0351, name: "lucky65").id, Keyboards.defaultChoice)
+    }
+
+    func testParse() {
+        XCTAssertEqual(Keyboards.parse("0603:0351"), ["0603:0351"])
+        XCTAssertEqual(Keyboards.parse("0603:0351,004c:0267"), ["0603:0351", "004c:0267"])
+        XCTAssertEqual(Keyboards.parse(""), [])
+    }
+
+    func testParseDropsDuplicatesAndNormalises() {
+        XCTAssertEqual(Keyboards.parse("0603:0351,0603:0351"), ["0603:0351"])
+        XCTAssertEqual(Keyboards.parse(" 004C:0267 , 0603:0351\n"), ["004c:0267", "0603:0351"])  // typed by hand
+    }
+
+    func testParseIgnoresInvalidEntries() {
+        let invalid = [
+            "garbage", "603:351", "0603:035", "0603:03510", "0603-0351", "0603:0351:0001", "0603", ":", "g603:0351",
+            "+603:0351", "-603:0351", "0x03:0x0351", "０６０３:０３５１", "🙂🙂🙂🙂:🙂🙂🙂🙂", "0603 : 0351", "\0",
+        ]
+        for entry in invalid { XCTAssertEqual(Keyboards.parse(entry), [], entry) }
+        XCTAssertEqual(Keyboards.parse(",,,"), [])
+        // a valid entry survives the invalid ones around it
+        XCTAssertEqual(Keyboards.parse("garbage,0603:0351,,603:351"), ["0603:0351"])
+    }
+
+    func testFormatIsSortedWithoutDuplicates() {
+        XCTAssertEqual(Keyboards.format(["0603:0351", "004c:0267"]), "004c:0267,0603:0351")
+        XCTAssertEqual(Keyboards.format(["0603:0351"]), "0603:0351")
+        XCTAssertEqual(Keyboards.format([]), "")
+        XCTAssertEqual(Keyboards.format(Keyboards.parse("0603:0351,004C:0267,0603:0351,junk")), "004c:0267,0603:0351")
+    }
+
+    func testMissingChoiceGivesTheLucky65() {
+        XCTAssertEqual(Keyboards.chosen(in: defaults), ["0603:0351"])
+        XCTAssertEqual(Keyboards.defaultChoice, "0603:0351")
+        XCTAssertEqual(Keyboards.choiceKey, "keyboards")
+    }
+
+    func testEmptyChoiceMeansNoKeyboard() {
+        defaults.set("", forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), [])
+    }
+
+    func testStoredChoiceWins() {
+        defaults.set("004c:0267", forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), ["004c:0267"])  // the Lucky65 is no longer chosen
+        defaults.set("0603:0351,004c:0267", forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), ["0603:0351", "004c:0267"])
+    }
+
+    func testUnusableStoredChoiceDoesNotCrash() {
+        defaults.set("garbage", forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), [])
+        // not a string: back to the default
+        defaults.set(true, forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), ["0603:0351"])
+        defaults.set(["004c:0267"], forKey: Keyboards.choiceKey)
+        XCTAssertEqual(Keyboards.chosen(in: defaults), ["0603:0351"])
+    }
+
     // MARK: Remapper.decide
 
     private func decide(
         down: Bool = true, isRepeat: Bool = false, held: Action? = nil, setting: Action = .playPause,
-        fromLucky65: Bool = true, hasModifier: Bool = false
+        fromChosenKeyboard: Bool = true, hasModifier: Bool = false
     ) -> Remapper.Decision {
         Remapper.decide(
-            isDown: down, isRepeat: isRepeat, held: held, setting: setting, fromLucky65: fromLucky65, hasModifier: hasModifier)
+            isDown: down, isRepeat: isRepeat, held: held, setting: setting, fromChosenKeyboard: fromChosenKeyboard,
+            hasModifier: hasModifier)
     }
 
-    func testPressFromTheLucky65PerformsTheSetting() {
+    func testPressFromAChosenKeyboardPerformsTheSetting() {
         XCTAssertEqual(decide(setting: .playPause), .down(.playPause))
         XCTAssertEqual(decide(setting: .volumeUp), .down(.volumeUp))
     }
@@ -131,8 +198,8 @@ final class MediakeysTests: XCTestCase {
         XCTAssertEqual(decide(setting: .fKey), .pass)  // F12
     }
 
-    func testKeyFromTheMacBookPasses() {
-        XCTAssertEqual(decide(fromLucky65: false), .pass)
+    func testKeyFromAKeyboardThatIsNotChosenPasses() {
+        XCTAssertEqual(decide(fromChosenKeyboard: false), .pass)  // for example the MacBook keyboard
     }
 
     func testModifierPasses() {
@@ -148,17 +215,19 @@ final class MediakeysTests: XCTestCase {
 
     func testRepeatOfAKeyThatIsNotHeldPasses() {
         XCTAssertEqual(decide(isRepeat: true, held: nil), .pass)
-        // the Lucky65 report is long gone by the time a repeat arrives, and the setting does not matter
-        XCTAssertEqual(decide(isRepeat: true, held: nil, setting: .volumeUp, fromLucky65: false), .pass)
+        // the HID report is long gone by the time a repeat arrives, and the setting does not matter
+        XCTAssertEqual(decide(isRepeat: true, held: nil, setting: .volumeUp, fromChosenKeyboard: false), .pass)
     }
 
     func testRepeatFollowsTheHeldActionNotTheSetting() {
-        XCTAssertEqual(decide(isRepeat: true, held: .volumeUp, setting: .fKey, fromLucky65: false, hasModifier: true), .repeatDown(.volumeUp))
+        XCTAssertEqual(
+            decide(isRepeat: true, held: .volumeUp, setting: .fKey, fromChosenKeyboard: false, hasModifier: true),
+            .repeatDown(.volumeUp))
     }
 
     func testKeyUpEndsTheHeldActionEvenIfTheSettingChanged() {
         XCTAssertEqual(decide(down: false, held: .playPause, setting: .volumeUp), .up(.playPause))
-        XCTAssertEqual(decide(down: false, held: .volumeUp, setting: .fKey, fromLucky65: false), .up(.volumeUp))
+        XCTAssertEqual(decide(down: false, held: .volumeUp, setting: .fKey, fromChosenKeyboard: false), .up(.volumeUp))
     }
 
     func testKeyUpOfAKeyThatIsNotHeldPasses() {

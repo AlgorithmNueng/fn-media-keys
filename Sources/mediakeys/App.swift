@@ -30,11 +30,11 @@ final class Status: ObservableObject {
 
     @Published private(set) var accessibility = false
     @Published private(set) var inputMonitoring = false
-    @Published private(set) var connected = false
+    @Published private(set) var keyboards: [Keyboard] = []
     @Published private(set) var running = false
 
     func start() {
-        LuckyKeys.setUp()
+        Keyboards.setUp()
         // Only prompts while the user has not decided yet; later requests come from the menu's buttons.
         _ = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
         // macOS sends no notification when a permission is granted or the keyboard is plugged in, so poll. Common modes:
@@ -48,7 +48,7 @@ final class Status: ObservableObject {
         let inputMonitoring = IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
         var running = self.running
         if accessibility && inputMonitoring {
-            if !running { running = LuckyKeys.open() && Remapper.start() }
+            if !running { running = Keyboards.open() && Remapper.start() }
         } else if running {
             Remapper.stop()
             running = false
@@ -56,7 +56,7 @@ final class Status: ObservableObject {
         // Published values are only assigned when they change, so the view is not redrawn every second for nothing.
         update(\.accessibility, accessibility)
         update(\.inputMonitoring, inputMonitoring)
-        update(\.connected, LuckyKeys.connected)
+        update(\.keyboards, Keyboards.connected)
         update(\.running, running)
     }
 

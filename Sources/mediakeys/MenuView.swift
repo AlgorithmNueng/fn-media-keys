@@ -4,18 +4,17 @@ import IOKit.hid
 import ServiceManagement
 import SwiftUI
 
-/// The popover of the menu bar item. It only writes UserDefaults; the event tap reads the settings on every key press.
+/// The popover of the menu bar item. It only writes UserDefaults; the event tap and the HID callback read the settings
+/// on every key press.
 struct MenuView: View {
     @ObservedObject private var status = Status.shared
     @AppStorage(Layout.enabledKey) private var enabled = true
+    @AppStorage(Keyboards.choiceKey) private var keyboards = Keyboards.defaultChoice
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Lucky65 Keys").font(.headline)
 
-            StatusRow(
-                title: "Lucky65", ok: status.connected,
-                text: status.connected ? "เชื่อมต่อแล้ว" : "ไม่พบ Lucky65 (ต่อสาย USB)")
             StatusRow(
                 title: "Accessibility", ok: status.accessibility,
                 text: status.accessibility ? "อนุญาตแล้ว" : "ยังไม่ได้อนุญาต",
@@ -31,9 +30,12 @@ struct MenuView: View {
             Toggle("เปิดใช้งาน", isOn: $enabled)
 
             Divider()
+            keyboardList
+
+            Divider()
             ForEach(Layout.keys, id: \.index) { KeyRow(key: $0) }
             Button("คืนค่าเริ่มต้น") {
-                // AppStorage shows the defaults again once the keys are gone.
+                // AppStorage shows the defaults again once the keys are gone. Only the actions: the keyboard choice stays.
                 Layout.keys.forEach { UserDefaults.standard.removeObject(forKey: $0.name) }
             }
 
@@ -43,6 +45,32 @@ struct MenuView: View {
         }
         .padding(12)
         .frame(width: 340)
+    }
+
+    /// Every connected keyboard, then the chosen ones that are not connected, so they can still be switched off.
+    private var keyboardList: some View {
+        let missing = Keyboards.parse(keyboards).subtracting(status.keyboards.map(\.id)).sorted()
+        return VStack(alignment: .leading, spacing: 6) {
+            Text("คีย์บอร์ดที่จะแปลงปุ่ม").font(.subheadline.bold())
+            if status.keyboards.isEmpty { Text("ไม่พบคีย์บอร์ด").foregroundStyle(.secondary) }
+            ForEach(status.keyboards) { KeyboardRow(id: $0.id, name: $0.name, connected: true, chosen: isChosen($0.id)) }
+            ForEach(missing, id: \.self) { KeyboardRow(id: $0, name: "ไม่ได้ต่ออยู่", connected: false, chosen: isChosen($0)) }
+            // Choosing the MacBook keyboard would remap its F-keys too.
+            Text("เลือกเฉพาะคีย์บอร์ดที่กด Fn+เลขแล้วได้ F1–F12 (เช่น Lucky65)")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Writes the whole choice back, so invalid entries in the stored string disappear with the first change.
+    private func isChosen(_ id: String) -> Binding<Bool> {
+        Binding(
+            get: { Keyboards.parse(keyboards).contains(id) },
+            set: { on in
+                var ids = Keyboards.parse(keyboards)
+                if on { ids.insert(id) } else { ids.remove(id) }
+                keyboards = Keyboards.format(ids)
+            })
     }
 
     private var relaunchHint: some View {
@@ -94,7 +122,25 @@ private struct StatusRow: View {
     }
 }
 
-/// One Fn key: what is printed on it, the F-key it sends, and the action it is set to.
+/// One keyboard: whether it is connected, its name and id, and whether its F-keys are remapped.
+private struct KeyboardRow: View {
+    let id: String
+    let name: String
+    let connected: Bool
+    @Binding var chosen: Bool
+
+    var body: some View {
+        Toggle(isOn: $chosen) {
+            HStack(spacing: 6) {
+                Circle().fill(connected ? Color.green : Color.gray).frame(width: 8, height: 8)
+                Text(name).lineLimit(1)
+                Text(id).foregroundStyle(.secondary).layoutPriority(1)
+            }
+        }
+    }
+}
+
+/// One Fn key: the F-key it sends, what is printed on the Lucky65 key, and the action it is set to.
 private struct KeyRow: View {
     let key: FnKey
     @AppStorage private var action: Action
@@ -106,10 +152,10 @@ private struct KeyRow: View {
 
     var body: some View {
         HStack {
-            Text(key.label).frame(width: 44, alignment: .leading)
-            Text(key.name).foregroundStyle(.secondary)
+            Text(key.name).frame(width: 44, alignment: .leading)
+            Text(key.label).foregroundStyle(.secondary)
             Spacer()
-            Picker(key.label, selection: $action) {
+            Picker(key.name, selection: $action) {
                 ForEach(Action.allCases, id: \.self) { Text($0.title) }
             }
             .pickerStyle(.menu)

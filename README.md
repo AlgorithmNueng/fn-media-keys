@@ -1,6 +1,6 @@
 # lucky65-media-keys
 
-A macOS menu bar app, "Lucky65 Keys", for the Lucky65 **V1** keyboard (wired, USB `0x0603:0x0351`). The V1 has no VIA/QMK support and its Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard media key (brightness, previous / play-pause / next, mute, volume). Only keys pressed on the Lucky65 are changed; the MacBook keyboard is left alone. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
+A macOS menu bar app, "Lucky65 Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard media key (brightness, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
 
 - [Install](#install)
 - [Use](#use)
@@ -32,7 +32,7 @@ This builds a release binary, wraps it as `~/Applications/Lucky65 Keys.app` (a m
 
 Grant both to **Lucky65 Keys** under System Settings > Privacy & Security:
 
-- **Input Monitoring**: to read which F-keys the Lucky65 itself pressed.
+- **Input Monitoring**: to read which F-keys a chosen keyboard itself pressed.
 - **Accessibility**: to drop the original F-key and post the media key instead.
 
 The popover (the keyboard icon in the menu bar) shows each permission with a button that asks for it and opens the right System Settings pane. Remapping starts by itself within a second of both being granted. If both are granted but it still does not work, the popover offers a button to open the app again; macOS sometimes applies Input Monitoring only to a fresh process.
@@ -57,21 +57,28 @@ Grant the permissions once more after the first build with the new certificate; 
 
 Click the keyboard icon in the menu bar. The popover shows:
 
-- the status of the keyboard (connected or not) and of both permissions
+- the status of both permissions
 - an enable switch (off: every key stays a plain F-key)
-- one picker per Fn key (Fn+1 ... Fn+=)
-- "reset to defaults"
+- the keyboards that are connected, each with a switch to choose it
+- one picker per Fn key (F1 ... F12, with the Lucky65 label Fn+1 ... Fn+= beside it)
+- "reset to defaults" (the twelve actions only; the keyboard choice stays)
 - "launch at login" (only in the installed app)
 - quit
 
 The popover text is in Thai; the English meaning is given in parentheses below. Each picker offers: plain F-key ("F-key ปกติ (ไม่แปลง)"), brightness down, brightness up, previous track, play / pause, next track, mute, volume down, volume up. Volume and brightness repeat while the key is held; the other media keys do not.
 
+### Choosing keyboards
+
+Under "คีย์บอร์ดที่จะแปลงปุ่ม" (keyboards whose keys are remapped) the popover lists every keyboard macOS sees, with its name, its ID as `vendor:product` in hexadecimal (for example `0603:0351`) and a switch. Only keyboards that are switched on are remapped. A green dot means connected. A chosen keyboard that is not connected stays in the list, marked "ไม่ได้ต่ออยู่" (not connected), so it can be switched off. With no keyboard connected the list says "ไม่พบคีย์บอร์ด" (no keyboard found). The list is read once a second, so a keyboard shows up shortly after it is plugged in or connected.
+
+Choose only keyboards that send plain F1-F12 when Fn is held (such as the Lucky65). The MacBook keyboard is in the list too; if you choose it, its F-keys are remapped as well. The choice is saved, and the Lucky65 V1 (wired, `0603:0351`) is chosen until you change it. The actions below are per F-key and shared by all chosen keyboards.
+
 ### Default layout
 
-From `Layout.keys` in `Sources/mediakeys/Layout.swift`:
+From `Layout.keys` in `Sources/mediakeys/Layout.swift`; the key names are the Lucky65's:
 
-| Key | Sends | Default action (popover title) |
-|-----|-------|--------------------------------|
+| Lucky65 key | Sends | Default action (popover title) |
+|-------------|-------|--------------------------------|
 | Fn+1 | F1 | Brightness down (ลดความสว่างจอ) |
 | Fn+2 | F2 | Brightness up (เพิ่มความสว่างจอ) |
 | Fn+3 | F3 | Plain F3 |
@@ -93,10 +100,17 @@ Hold **shift, ctrl, opt or cmd** with a remapped key and the app leaves the key 
 
 ### Settings
 
-Settings are stored in UserDefaults, domain `com.lucky65keys.app` (the installed app): `enabled` (a boolean; missing means on) and `F1` ... `F12`, each holding an action name: `fKey`, `brightnessDown`, `brightnessUp`, `rewind`, `playPause`, `fastForward`, `mute`, `volumeDown` or `volumeUp`. A missing or unknown value falls back to the default. The app reads them on every key press, so a change in the popover applies to the next press. They can also be set from the terminal:
+Settings are stored in UserDefaults, domain `com.lucky65keys.app` (the installed app):
+
+- `enabled`: a boolean; missing means on.
+- `F1` ... `F12`: each holds an action name: `fKey`, `brightnessDown`, `brightnessUp`, `rewind`, `playPause`, `fastForward`, `mute`, `volumeDown` or `volumeUp`. A missing or unknown value falls back to the default.
+- `keyboards`: the chosen keyboards as one comma-separated string of `vvvv:pppp` IDs (vendor ID, a colon, product ID; each four lowercase hexadecimal digits), for example `0603:0351,004c:0267`. Missing (or not a string) means `0603:0351`, the Lucky65 V1. An empty string means no keyboard, so nothing is remapped. Entries that are not well formed are ignored (capital letters and spaces around an entry are accepted). The popover writes the value back sorted and without duplicates.
+
+The app reads them on every key press, so a change in the popover applies to the next press. They can also be set from the terminal:
 
 ```bash
 defaults write com.lucky65keys.app F12 -string volumeUp
+defaults write com.lucky65keys.app keyboards -string "0603:0351,004c:0267"
 ```
 
 ## Security and privacy
@@ -104,7 +118,7 @@ defaults write com.lucky65keys.app F12 -string volumeUp
 This app sees keyboard input, so here is exactly what it does with it.
 
 - **Event tap.** To swallow an F-key and post a media key instead, the app installs an active event tap (key down and key up only). macOS therefore hands it the key events of every app, system-wide; that is how any remap works. The callback compares the key code with the twelve F-key codes and returns every other event untouched. For those twelve it also reads the auto-repeat flag and the modifier flags. It does not read the typed characters, and it does not subscribe to modifier-change or media-key events. Key codes are not stored, logged or sent anywhere.
-- **Only the Lucky65 is changed.** A key event carries no device, so the app asks the HID layer. It matches the Lucky65's keyboard interfaces by vendor and product ID and asks macOS for input values of the twelve F-key usages only (keyboard page `0x07`, usages `0x3A`-`0x45`). IOHIDManager filters every other key, on the Lucky65 or the MacBook, out before the app's callback (which checks again), so the HID side cannot see what is typed. All it keeps is the time of the last press of each of those twelve usages, in memory. An F-key event is remapped only if the Lucky65 reported that same F-key within the last 100 ms.
+- **Only the chosen keyboards are changed.** A key event carries no device, so the app asks the HID layer. It matches the interfaces of all keyboards (primary usage page `0x01`, usage `0x06`) and asks macOS for input values of the twelve F-key usages only (keyboard page `0x07`, usages `0x3A`-`0x45`). IOHIDManager filters every other key, on any keyboard, out before the app's callback (which checks again), so the HID side cannot see what is typed. It does receive the twelve F-key presses of keyboards that are not chosen too (the MacBook's, for example): for each press it reads the keyboard's vendor and product ID and the saved choice, and drops the press unless that keyboard is chosen. For the chosen ones all it keeps is the time of the last press of each of those twelve usages, in memory. An F-key event is remapped only if a chosen keyboard reported that same F-key within the last 100 ms. The keyboard list in the popover uses the names and IDs macOS gives for the connected keyboards (listing devices needs no permission); they are shown, never stored or sent.
 - **No network access.** The code has no networking.
 - **Nothing is logged or stored**, apart from the settings above in UserDefaults and, if you switch it on, the macOS login item (kept by macOS, not by the app).
 - **Permissions are broader than the code.** Input Monitoring and Accessibility are all-or-nothing in macOS: they let the app receive more than it uses. The narrow behaviour described here comes from the code, not from macOS, so read it (it is small) or build it yourself before granting the permissions. The app is not notarized.
@@ -188,7 +202,8 @@ Lucky65 on macOS, captured 2026-10-28 with `keydebug watch`.
 
 ## Limits and not yet
 
-- Wired USB only: the app matches `0x0603:0x0351`. The 2.4 GHz and Bluetooth modes are not supported.
+- The Lucky65's 2.4 GHz and Bluetooth modes are untested. The app has no special code for them: if they appear in the keyboard list with other IDs, choose them there. Only the wired V1 (`0603:0351`) is chosen by default.
+- A key event carries no device, so if a chosen and a not chosen keyboard send the same F-key within 100 ms of each other, both presses may be remapped.
 - Mission Control, Spotlight, Dictation and Do Not Disturb (the Magic Keyboard's F3-F6) are not available as actions yet, so F3-F6 stay plain F-keys. Which of them can be triggered from user space is being investigated with `keydebug post`.
 - Only the twelve Fn-row keys are handled. The keyboard's own consumer keys (such as the Volume Down above) go straight to macOS and are not touched.
 - The Lucky65 V1 has no VIA support, so the remap lives on the Mac: it works only while the app runs, and on another computer the keys are plain F-keys.
@@ -197,12 +212,12 @@ Lucky65 on macOS, captured 2026-10-28 with `keydebug watch`.
 ## Project layout
 
 - `Package.swift`: two executables, `mediakeys` and `keydebug`, each with a test target; macOS 13
-- `Sources/mediakeys/App.swift`: app entry (menu bar item); `Status` polls the permissions and starts or stops the remapper
+- `Sources/mediakeys/App.swift`: app entry (menu bar item); `Status` polls the permissions and the connected keyboards and starts or stops the remapper
 - `Sources/mediakeys/MenuView.swift`: the popover UI
 - `Sources/mediakeys/Layout.swift`: media keys, actions, the twelve Fn keys with their default actions, reading the settings
 - `Sources/mediakeys/Actions.swift`: what an action does when its key is pressed
 - `Sources/mediakeys/EventTap.swift`: the event tap that swallows the F-key and decides what to do with it
-- `Sources/mediakeys/LuckyKeys.swift`: which F-keys the Lucky65 itself just reported (HID)
+- `Sources/mediakeys/Keyboards.swift`: the connected keyboards, the saved choice of which to remap, and which F-keys a chosen keyboard itself just reported (HID)
 - `Sources/mediakeys/MediaEvent.swift`: builds and posts the media-key event
 - `Sources/keydebug/main.swift`: command line parsing and the commands
 - `Sources/keydebug/HIDWatcher.swift`: `list` and the raw HID side of `watch`

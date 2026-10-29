@@ -1,6 +1,6 @@
 import AppKit
 
-/// Swallows the F-keys that are set to an action when they come from the Lucky65, and performs the action instead.
+/// Swallows the F-keys that are set to an action when they come from a chosen keyboard, and performs the action instead.
 enum Remapper {
     enum Decision: Equatable {
         case pass  // let the event through
@@ -16,7 +16,7 @@ enum Remapper {
 
     /// What to do with a key event. `held` is the action of the key's own earlier key-down, `setting` what the key is set to now.
     static func decide(
-        isDown: Bool, isRepeat: Bool, held: Action?, setting: Action, fromLucky65: Bool, hasModifier: Bool
+        isDown: Bool, isRepeat: Bool, held: Action?, setting: Action, fromChosenKeyboard: Bool, hasModifier: Bool
     ) -> Decision {
         guard isDown else { return held.map { .up($0) } ?? .pass }
         if isRepeat {
@@ -24,7 +24,7 @@ enum Remapper {
             return held.repeats ? .repeatDown(held) : .swallow
         }
         // Any real modifier means the user wants the plain F-key (the escape hatch to get F8 itself).
-        return setting == .fKey || !fromLucky65 || hasModifier ? .pass : .down(setting)
+        return setting == .fKey || !fromChosenKeyboard || hasModifier ? .pass : .down(setting)
     }
 
     /// Returns false when the tap cannot be created (no Accessibility / Input Monitoring permission). Does nothing when already running.
@@ -72,7 +72,7 @@ private func onEvent(_: CGEventTapProxy, type: CGEventType, event: CGEvent, _: U
         isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
         held: Remapper.held[code],
         setting: Layout.isEnabled() ? Layout.action(at: index) : .fKey,
-        fromLucky65: LuckyKeys.recentlyPressed(usage: Layout.keys[index].usage),
+        fromChosenKeyboard: Keyboards.recentlyPressed(usage: Layout.keys[index].usage),
         hasModifier: !event.flags.isDisjoint(with: modifiers))
 
     switch decision {
