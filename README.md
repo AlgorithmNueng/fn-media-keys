@@ -1,5 +1,7 @@
 # fn-media-keys
 
+<img src="docs/icon.png" width="128" alt="Fn Media Keys icon">
+
 A macOS menu bar app, "Fn Media Keys", for keyboards whose Fn layer sends plain F1-F12. It was written for the Lucky65 **V1** (wired, USB `0x0603:0x0351`), which has no VIA/QMK support and whose Fn+1 ... Fn+= keys arrive on the Mac as plain F1-F12, so the remap lives on the Mac: for each Fn key you choose either the plain F-key or a Magic Keyboard function (brightness, Mission Control, Launchpad, Spotlight, Dictation, Do Not Disturb, previous / play-pause / next, mute, volume). You choose in the popover which keyboards are remapped; the Lucky65 V1 (wired) is chosen by default. Only keys pressed on a chosen keyboard are changed, so the MacBook keyboard is left alone unless you choose it. Requires macOS 13 or later. The repository also contains `keydebug`, a small command line tool that shows what a keyboard actually sends.
 
 - [Install](#install)
@@ -228,6 +230,9 @@ Lucky65 on macOS, captured 2026-10-28 with `keydebug watch`.
 - `Sources/keydebug/Timeline.swift`: timestamped, grouped output
 - `Tests/`: unit tests for both targets
 - `scripts/make-app.sh`, `scripts/Info.plist`: build and install the app bundle
+- `scripts/make-icon.swift`: draws the app icon (`swift scripts/make-icon.swift`) and writes `scripts/AppIcon.icns` and `docs/icon.png`; both outputs are committed
+- `scripts/AppIcon.icns`: the app icon, copied into the bundle by `make-app.sh`
+- `docs/icon.png`: the icon at 256 px, shown at the top of this README
 - `.github/workflows/ci.yml`: build and test on GitHub Actions
 - `captures/`: local recordings of `watch` (`*.txt` is git-ignored: they contain every key typed while running)
 

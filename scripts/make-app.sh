@@ -17,9 +17,10 @@ APP="${APP_DIR:-$HOME/Applications}/Fn Media Keys.app"
 pkill -f "$APP/Contents/MacOS/mediakeys" || true
 
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/mediakeys"
 cp scripts/Info.plist "$APP/Contents/Info.plist"
+cp scripts/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 codesign --force --options runtime --sign "${SIGN_ID:--}" "$APP"
 codesign --verify --strict "$APP"
